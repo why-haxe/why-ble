@@ -72,7 +72,6 @@ class NodeCentral implements Central {
 }
 
 @:allow(ble.centrals)
-@:build(futurize.Futurize.build())
 class NodePeripheral implements Peripheral {
 	public var id(default, null):String;
 	public var connectable(default, null):Observable<Bool>;
@@ -108,11 +107,21 @@ class NodePeripheral implements Peripheral {
 	}
 	
 	public function connect():Promise<Noise> {
-		return @:futurize native.connect($cb0);
+		return Future.async(function(cb) {
+			native.connect(function(err) {
+				if(err != null) cb(Failure(Error.ofJsError(err)))
+				else cb(Success(Noise));
+			});
+		});
 	}
 	
 	public function disconnect():Promise<Noise> {
-		return @:futurize native.disconnect($cb0);
+		return Future.async(function(cb) {
+			native.disconnect(function(err) {
+				if(err != null) cb(Failure(Error.ofJsError(err)))
+				else cb(Success(Noise));
+			});
+		});
 	}
 	
 	public function discoverServices():Promise<Array<Service>> {
@@ -178,7 +187,7 @@ class NodeCharacteristic implements Characteristic {
 private class AdvertisementTools {
 	public static function fromNative(native:NobleAdvertisement):Advertisement {
 		return {
-			localName:  native.localName,
+			localName: native.localName,
 			txPowerLevel: native.txPowerLevel,
 			serviceUuids: native.serviceUuids,
 			serviceSolicitationUuid: native.serviceSolicitationUuid,
