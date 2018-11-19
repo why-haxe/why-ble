@@ -74,6 +74,7 @@ class NodeCentral implements Central {
 @:allow(ble.centrals)
 class NodePeripheral implements Peripheral {
 	public var id(default, null):String;
+	public var mac(default, null):String;
 	public var connectable(default, null):Observable<Bool>;
 	public var rssi(default, null):Observable<Int>;
 	public var advertisement(default, null):Observable<Advertisement>;
@@ -88,6 +89,7 @@ class NodePeripheral implements Peripheral {
 	public function new(native) {
 		this.native = native;
 		id = native.id;
+		mac = native.address;
 		
 		connectable = connectableState = new State(native.connectable);
 		rssi = rssiState = new State(native.rssi);

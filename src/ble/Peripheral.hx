@@ -6,6 +6,7 @@ using tink.CoreApi;
 
 interface Peripheral {
 	var id(default, null):String;
+	var mac(default, null):String;
 	var connectable(default, null):Observable<Bool>;
 	var rssi(default, null):Observable<Int>;
 	var advertisement(default, null):Observable<Advertisement>;
