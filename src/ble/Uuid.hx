@@ -22,6 +22,11 @@ abstract Uuid(Chunk) to Chunk {
 		}
 	}
 	
+	@:to
+	public inline function toString():String {
+		return this.toHex();
+	}
+	
 	@:op(A == B)
 	public function equals(that:Uuid):Bool {
 		return this.length == that.length ? compare(this, that) : compare(full(), that.full());
