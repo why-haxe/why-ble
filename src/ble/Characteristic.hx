@@ -9,7 +9,7 @@ interface Characteristic {
 	function read():Promise<Chunk>;
 	function write(data:Chunk, withoutResponse:Bool):Promise<Noise>;
 	
-	function subscribe(handler:Callback<Chunk>):Promise<CallbackLink>;
+	function subscribe(handler:Callback<Outcome<Chunk, Error>>):CallbackLink;
 	
 	// TODO
 	// function discoverDescriptors():Promise<Array<Descriptor>>;

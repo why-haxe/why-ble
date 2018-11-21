@@ -185,20 +185,16 @@ class NodeCharacteristic implements Characteristic {
 		});
 	}
 	
-	public function subscribe(handler:Callback<Chunk>):Promise<CallbackLink> {
-		return Future.async(function(cb) {
-			native.subscribe(function(err) {
-				if(err != null) cb(Failure(Error.ofJsError(err)))
-				else {
-					function callback(data, isNotification) handler.invoke(chunkify(data));
-					native.on('data', callback);
-					cb(Success(CallbackLink.join(
-						(cast native.unsubscribe:Void->Void),
-						native.removeListener.bind('data', callback)
-					)));
-				}
-			});
-		});
+	public function subscribe(handler:Callback<Outcome<Chunk, Error>>):CallbackLink {
+		native.on('data', function onData(data, isNotification) handler.invoke(Success(chunkify(data))));
+		native.on('error', function onError(err) handler.invoke(Failure(Error.ofJsError(err))));
+		native.subscribe(onError);
+
+		return [
+			(cast native.unsubscribe:Void->Void),
+			native.removeListener.bind('data', onData),
+			native.removeListener.bind('error', onError),
+		];
 	}
 	
 	function chunkify(data:EitherType<String, Buffer>) {
