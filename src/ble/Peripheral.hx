@@ -2,9 +2,19 @@ package ble;
 
 import tink.state.*;
 
+using Lambda;
 using tink.CoreApi;
 
-interface Peripheral {
+@:forward
+abstract Peripheral(PeripheralObject) from PeripheralObject to PeripheralObject {
+	public function discoverCharacteristics():Promise<Array<Characteristic>> {
+		return this.discoverServices()
+			.next(function(services) return Promise.inParallel([for(service in services) service.discoverCharacteristics()]))
+			.next(function(list) return list.fold(function(item, all:Array<Characteristic>) return all.concat(item), []));
+	}
+}
+
+interface PeripheralObject {
 	var id(default, null):String;
 	var mac(default, null):String;
 	var connectable(default, null):Observable<Bool>;

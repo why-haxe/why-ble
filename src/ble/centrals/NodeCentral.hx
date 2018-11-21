@@ -72,7 +72,7 @@ class NodeCentral implements Central {
 }
 
 @:allow(ble.centrals)
-class NodePeripheral implements Peripheral {
+class NodePeripheral implements Peripheral.PeripheralObject {
 	public var id(default, null):String;
 	public var mac(default, null):String;
 	public var connectable(default, null):Observable<Bool>;
@@ -172,7 +172,7 @@ class NodeCharacteristic implements Characteristic {
 		return Future.async(function(cb) {
 			native.read(function(err, data) {
 				if(err != null) cb(Failure(Error.ofJsError(err)))
-				else cb(Success(Std.is(data, String) ? Chunk.ofString(data) : Chunk.ofBuffer(data)));
+				else cb(Success(chunkify(data)));
 			});
 		});
 	}
@@ -183,6 +183,26 @@ class NodeCharacteristic implements Characteristic {
 				cb(err != null ? Failure(Error.ofJsError(err)) : Success(Noise));
 			});
 		});
+	}
+	
+	public function subscribe(handler:Callback<Chunk>):Promise<CallbackLink> {
+		return Future.async(function(cb) {
+			native.subscribe(function(err) {
+				if(err != null) cb(Failure(Error.ofJsError(err)))
+				else {
+					function callback(data, isNotification) handler.invoke(chunkify(data));
+					native.on('data', callback);
+					cb(Success(CallbackLink.join(
+						(cast native.unsubscribe:Void->Void),
+						native.removeListener.bind('data', callback)
+					)));
+				}
+			});
+		});
+	}
+	
+	function chunkify(data:EitherType<String, Buffer>) {
+		return Std.is(data, String) ? Chunk.ofString(data) : Chunk.ofBuffer(data);
 	}
 }
 
@@ -232,6 +252,7 @@ extern class NobleService extends EventEmitter<NobleService> {
 extern class NobleCharacteristic extends EventEmitter<NobleCharacteristic> {
 	var uuid:String;
 	function subscribe(?callback:js.Error->Void):Void;
+	function unsubscribe(?callback:js.Error->Void):Void;
 	function write(data:Buffer, withoutResponse:Bool, ?callback:js.Error->Void):Void;
 	function read(?callback:js.Error->EitherType<String, Buffer>->Void):Void;
 	function discoverDescriptors(?callback:js.Error->Array<NobleDescriptor>->Void):Void;

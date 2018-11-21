@@ -14,7 +14,7 @@ abstract Uuid(Chunk) to Chunk {
 		this = chunk;
 	
 	@:from
-	public inline static function ofString(v:String):Uuid {
+	public static function ofString(v:String):Uuid {
 		v = v.replace('-', '');
 		return switch v.length >> 1 {
 			case 2 | 4 | 16: new Uuid(Chunk.ofHex(v));
