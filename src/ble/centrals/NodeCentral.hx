@@ -10,10 +10,11 @@ import js.node.events.EventEmitter;
 
 using tink.CoreApi;
 
-class NodeCentral implements Central {
+class NodeCentral implements CentralObject {
 	
 	public var status(default, null):Observable<Status>;
 	public var peripherals(default, null):ObservableMap<String, Peripheral>;
+	public var advertisements(default, null):Signal<Peripheral>;
 	public var discovered(default, null):Signal<Peripheral>;
 	
 	var trigger:SignalTrigger<Peripheral>;
@@ -46,8 +47,23 @@ class NodeCentral implements Central {
 		);
 		
 		peripherals = new ObservableMap(new Map());
+		advertisements = Signal.generate(function(trigger) {
+			var bindings:CallbackLink = null;
+			peripherals.observableValues.bind(null, function(list) {
+				bindings.dissolve();
+				bindings = [for(peripheral in list) peripheral.advertisement.bind(null, function(_) trigger(peripheral))];
+			});
+		});
 		discovered = Signal.generate(function(trigger) {
 			noble.on('discover', function discover(native:NoblePeripheral) {
+				
+				// WORKAROUND for rpi3
+				// https://github.com/noble/noble/issues/223
+				if(Sys.systemName() == 'Linux') {
+					native.removeListener('connect', startScan);
+					native.on('connect', startScan);
+				}
+				
 				switch peripherals.get(native.id) {
 					case null:
 						var peripheral = new NodePeripheral(native);
@@ -81,10 +97,12 @@ class NodePeripheral implements Peripheral.PeripheralObject {
 	public var connected(default, null):Observable<Bool>;
 	
 	var connectableState:State<Bool>;
+	var connectedState:State<Bool>;
 	var rssiState:State<Int>;
 	var advertisementState:State<Advertisement>;
 	
 	var native:NoblePeripheral;
+	var binding:CallbackLink;
 	
 	public function new(native) {
 		this.native = native;
@@ -94,18 +112,28 @@ class NodePeripheral implements Peripheral.PeripheralObject {
 		connectable = connectableState = new State(native.connectable);
 		rssi = rssiState = new State(native.rssi);
 		advertisement = advertisementState = new State(AdvertisementTools.fromNative(native.advertisement));
+		connected = connectedState = new State(false);
 		
-		var connectedState = new State(false);
-		connected = connectedState;
-		native.on('connect', connectedState.set.bind(true));
-		native.on('disconnect', connectedState.set.bind(false));
+		listen();
 	}
 	
 	function update(native) {
-		// this.native = native; // noble returns the same peripheral instance
+		this.native = native;
 		connectableState.set(native.connectable);
 		rssiState.set(native.rssi);
 		advertisementState.set(AdvertisementTools.fromNative(native.advertisement));
+		
+		binding.dissolve();
+		listen();
+	}
+	
+	function listen() {
+		native.on('connect', function onConnect() connectedState.set(true));
+		native.on('disconnect', function onDisconnect() connectedState.set(false));
+		binding = [
+			native.removeListener.bind('connect', onConnect),
+			native.removeListener.bind('disconnect', onDisconnect),
+		];
 	}
 	
 	public function connect():Promise<Noise> {
@@ -160,12 +188,14 @@ class NodeService implements Service {
 class NodeCharacteristic implements Characteristic {
 	
 	public var uuid(default, null):Uuid;
+	public var properties(default, null):Iterable<Characteristic.Property>;
 	
 	var native:NobleCharacteristic;
 	
 	public function new(native) {
 		this.native = native;
 		this.uuid = native.uuid;
+		this.properties = native.properties.map(parseProperty);
 	}
 	
 	public function read():Promise<Chunk> {
@@ -188,7 +218,7 @@ class NodeCharacteristic implements Characteristic {
 	public function subscribe(handler:Callback<Outcome<Chunk, Error>>):CallbackLink {
 		native.on('data', function onData(data, isNotification) handler.invoke(Success(chunkify(data))));
 		native.on('error', function onError(err) handler.invoke(Failure(Error.ofJsError(err))));
-		native.subscribe(onError);
+		native.subscribe(function(err) if(err != null) onError(err));
 
 		return [
 			(cast native.unsubscribe:Void->Void),
@@ -199,6 +229,20 @@ class NodeCharacteristic implements Characteristic {
 	
 	function chunkify(data:EitherType<String, Buffer>) {
 		return Std.is(data, String) ? Chunk.ofString(data) : Chunk.ofBuffer(data);
+	}
+	
+	static function parseProperty(v:String):Characteristic.Property {
+		return switch v {
+			case 'broadcast': Broadcast;
+			case 'read': Read;
+			case 'writeWithoutResponse': WriteWithoutResponse;
+			case 'write': Write;
+			case 'notify': Notify;
+			case 'indicate': Indicate;
+			case 'authenticatedSignedWrites': AuthenticatedSignedWrites;
+			case 'extendedProperties': ExtendedProperties;
+			case _: Unknown(v);
+		}
 	}
 }
 
@@ -247,6 +291,7 @@ extern class NobleService extends EventEmitter<NobleService> {
 
 extern class NobleCharacteristic extends EventEmitter<NobleCharacteristic> {
 	var uuid:String;
+	var properties:Array<String>;
 	function subscribe(?callback:js.Error->Void):Void;
 	function unsubscribe(?callback:js.Error->Void):Void;
 	function write(data:Buffer, withoutResponse:Bool, ?callback:js.Error->Void):Void;

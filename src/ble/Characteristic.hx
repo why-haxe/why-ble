@@ -5,6 +5,7 @@ using tink.CoreApi;
 
 interface Characteristic {
 	var uuid(default, null):Uuid;
+	var properties(default, null):Iterable<Property>; // TODO: use ReadOnlyArray
 	
 	function read():Promise<Chunk>;
 	function write(data:Chunk, withoutResponse:Bool):Promise<Noise>;
@@ -13,4 +14,16 @@ interface Characteristic {
 	
 	// TODO
 	// function discoverDescriptors():Promise<Array<Descriptor>>;
+}
+
+enum Property {
+	Broadcast;
+	Read;
+	WriteWithoutResponse;
+	Write;
+	Notify;
+	Indicate;
+	AuthenticatedSignedWrites;
+	ExtendedProperties;
+	Unknown(v:String);
 }
