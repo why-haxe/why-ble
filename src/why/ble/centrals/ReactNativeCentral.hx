@@ -18,7 +18,6 @@ using tink.CoreApi;
 
 class ReactNativeCentral extends CentralBase {
 	
-	
 	static var manager(get, null):NativeManager;
 	static function get_manager() {
 		if(manager == null) manager = new NativeManager();
@@ -87,10 +86,7 @@ class ReactNativePeripheral implements PeripheralObject {
 	
 	public function connect():Promise<Noise> {
 		var promise = Promise.ofJsPromise(native.connect());
-		promise.handle(function(o) {
-			trace(o);
-			if(o.isSuccess()) connectedState.set(true);
-		});
+		promise.handle(function(o) if(o.isSuccess()) connectedState.set(true));
 		return promise;
 	}
 	
