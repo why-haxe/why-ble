@@ -1,6 +1,9 @@
 package ble.centrals;
 
 import ble.Central;
+import ble.Peripheral;
+import ble.Characteristic;
+import ble.Service;
 import tink.state.*;
 import tink.Chunk;
 
@@ -10,12 +13,7 @@ import js.node.events.EventEmitter;
 
 using tink.CoreApi;
 
-class NodeCentral implements CentralObject {
-	
-	public var status(default, null):Observable<Status>;
-	public var peripherals(default, null):ObservableMap<String, Peripheral>;
-	public var advertisements(default, null):Signal<Peripheral>;
-	public var discovered(default, null):Signal<Peripheral>;
+class NodeCentral extends CentralBase {
 	
 	var trigger:SignalTrigger<Peripheral>;
 	
@@ -23,64 +21,37 @@ class NodeCentral implements CentralObject {
 	
 	public function new() {
 		
+		super();
+		
 		noble = Noble.inst;
-		
-		var currentStatus = Unknown;
-		status = new Observable(
-			function() return currentStatus,
-			Signal.generate(function(trigger) {
-				noble.on('stateChange', function(s:String) {
-					var status = switch s {
-						case 'resetting': Resetting;
-						case 'unsupported': Unsupported;
-						case 'unauthorized': Unauthorized;
-						case 'poweredOff': Off;
-						case 'poweredOn': On;
-						case _: Unknown;
-					}
-					if(currentStatus != status) {
-						currentStatus = status;
-						trigger(Noise);
-					}
-				});
-			})
-		);
-		
-		peripherals = new ObservableMap(new Map());
-		advertisements = Signal.generate(function(trigger) {
-			var bindings:CallbackLink = null;
-			peripherals.observableValues.bind(null, function(list) {
-				bindings.dissolve();
-				bindings = [for(peripheral in list) peripheral.advertisement.bind(null, function(_) trigger(peripheral))];
-			});
+		noble.on('stateChange', function(s:String) {
+			statusState.set(NativeTools.status(s));
 		});
-		discovered = Signal.generate(function(trigger) {
-			noble.on('discover', function discover(native:NoblePeripheral) {
-				
-				// WORKAROUND for rpi3
-				// https://github.com/noble/noble/issues/223
-				if(Sys.systemName() == 'Linux') {
-					native.removeListener('connect', startScan);
-					native.on('connect', startScan);
-				}
-				
-				switch peripherals.get(native.id) {
-					case null:
-						var peripheral = new NodePeripheral(native);
-						peripherals.set(native.id, peripheral);
-						trigger((peripheral:Peripheral));
-					case (cast _:NodePeripheral) => p:
-						p.update(native);
-				}
-			});
+		
+		noble.on('discover', function discover(native:NoblePeripheral) {
+			// WORKAROUND for rpi3
+			// https://github.com/noble/noble/issues/223
+			if(Sys.systemName() == 'Linux') {
+				native.removeListener('connect', startScan);
+				native.on('connect', startScan);
+			}
+			
+			switch peripherals.get(native.id) {
+				case null:
+					var peripheral = new NodePeripheral(native);
+					peripherals.set(native.id, peripheral);
+					discoveredTrigger.trigger((peripheral:Peripheral));
+				case (cast _:NodePeripheral) => p:
+					p.update(native);
+			}
 		});
 	}
 	
-	public function startScan():Void {
+	override function startScan():Void {
 		noble.startScanning([], true);
 	}
 	
-	public function stopScan():Void {
+	override function stopScan():Void {
 		noble.stopScanning();
 	}
 	
@@ -88,7 +59,7 @@ class NodeCentral implements CentralObject {
 }
 
 @:allow(ble.centrals)
-class NodePeripheral implements Peripheral.PeripheralObject {
+class NodePeripheral implements PeripheralObject {
 	public var id(default, null):String;
 	public var mac(default, null):String;
 	public var connectable(default, null):Observable<Bool>;
@@ -111,7 +82,7 @@ class NodePeripheral implements Peripheral.PeripheralObject {
 		
 		connectable = connectableState = new State(native.connectable);
 		rssi = rssiState = new State(native.rssi);
-		advertisement = advertisementState = new State(AdvertisementTools.fromNative(native.advertisement));
+		advertisement = advertisementState = new State(NativeTools.advertisement(native.advertisement));
 		connected = connectedState = new State(false);
 		
 		listen();
@@ -121,7 +92,7 @@ class NodePeripheral implements Peripheral.PeripheralObject {
 		this.native = native;
 		connectableState.set(native.connectable);
 		rssiState.set(native.rssi);
-		advertisementState.set(AdvertisementTools.fromNative(native.advertisement));
+		advertisementState.set(NativeTools.advertisement(native.advertisement));
 		
 		binding.dissolve();
 		listen();
@@ -164,7 +135,7 @@ class NodePeripheral implements Peripheral.PeripheralObject {
 	}
 }
 
-class NodeService implements Service {
+class NodeService implements ServiceObject {
 	
 	public var uuid(default, null):Uuid;
 	
@@ -185,7 +156,7 @@ class NodeService implements Service {
 	}
 }
 
-class NodeCharacteristic implements Characteristic {
+class NodeCharacteristic implements CharacteristicObject {
 	
 	public var uuid(default, null):Uuid;
 	public var properties(default, null):Iterable<Characteristic.Property>;
@@ -195,7 +166,7 @@ class NodeCharacteristic implements Characteristic {
 	public function new(native) {
 		this.native = native;
 		this.uuid = native.uuid;
-		this.properties = native.properties.map(parseProperty);
+		this.properties = native.properties.map(NativeTools.property);
 	}
 	
 	public function read():Promise<Chunk> {
@@ -231,7 +202,21 @@ class NodeCharacteristic implements Characteristic {
 		return Std.is(data, String) ? Chunk.ofString(data) : Chunk.ofBuffer(data);
 	}
 	
-	static function parseProperty(v:String):Characteristic.Property {
+}
+
+private class NativeTools {
+	public static function advertisement(native:NobleAdvertisement):Advertisement {
+		return {
+			localName: native.localName,
+			txPowerLevel: native.txPowerLevel,
+			serviceUuids: native.serviceUuids,
+			serviceSolicitationUuid: native.serviceSolicitationUuid,
+			manufacturerData: native.manufacturerData == null ? Chunk.EMPTY : native.manufacturerData,
+			serviceData: [for(s in native.serviceData) {uuid: s.uuid, data: s.data}],
+		}
+	}
+	
+	public static function property(v:String):Property {
 		return switch v {
 			case 'broadcast': Broadcast;
 			case 'read': Read;
@@ -244,17 +229,15 @@ class NodeCharacteristic implements Characteristic {
 			case _: Unknown(v);
 		}
 	}
-}
-
-private class AdvertisementTools {
-	public static function fromNative(native:NobleAdvertisement):Advertisement {
-		return {
-			localName: native.localName,
-			txPowerLevel: native.txPowerLevel,
-			serviceUuids: native.serviceUuids,
-			serviceSolicitationUuid: native.serviceSolicitationUuid,
-			manufacturerData: native.manufacturerData == null ? Chunk.EMPTY : native.manufacturerData,
-			serviceData: [for(s in native.serviceData) {uuid: s.uuid, data: s.data}],
+	
+	public static inline function status(s:String):Status {
+		return switch s {
+			case 'resetting': Resetting;
+			case 'unsupported': Unsupported;
+			case 'unauthorized': Unauthorized;
+			case 'poweredOff': Off;
+			case 'poweredOn': On;
+			case _: Unknown;
 		}
 	}
 }

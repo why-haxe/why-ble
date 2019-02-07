@@ -3,7 +3,10 @@ package ble;
 import tink.Chunk;
 using tink.CoreApi;
 
-interface Characteristic {
+@:forward
+abstract Characteristic(CharacteristicObject) from CharacteristicObject to CharacteristicObject {}
+
+interface CharacteristicObject {
 	var uuid(default, null):Uuid;
 	var properties(default, null):Iterable<Property>; // TODO: use ReadOnlyArray
 	

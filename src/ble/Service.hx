@@ -2,7 +2,11 @@ package ble;
 
 using tink.CoreApi;
 
-interface Service {
+
+@:forward
+abstract Service(ServiceObject) from ServiceObject to ServiceObject {}
+
+interface ServiceObject {
 	var uuid(default, null):Uuid;
 	function discoverCharacteristics():Promise<Array<Characteristic>>;
 }
