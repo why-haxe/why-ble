@@ -1,9 +1,9 @@
-package ble.centrals;
+package why.ble.centrals;
 
-import ble.Central;
-import ble.Peripheral;
-import ble.Service;
-import ble.Characteristic;
+import why.ble.Central;
+import why.ble.Peripheral;
+import why.ble.Service;
+import why.ble.Characteristic;
 import haxe.crypto.Base64;
 import react.native.ble_plx.BleManager as NativeManager;
 import react.native.ble_plx.State as NativeState;
@@ -57,7 +57,7 @@ class ReactNativeCentral extends CentralBase {
 	}
 }
 
-@:allow(ble.centrals)
+@:allow(why.ble.centrals)
 class ReactNativePeripheral implements PeripheralObject {
 	public var id(default, null):String;
 	public var mac(default, null):String;

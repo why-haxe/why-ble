@@ -1,4 +1,4 @@
-package ble;
+package why.ble;
 
 enum Permission {
 	None;

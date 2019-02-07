@@ -1,9 +1,9 @@
-package ble.centrals;
+package why.ble.centrals;
 
-import ble.Central;
-import ble.Peripheral;
-import ble.Characteristic;
-import ble.Service;
+import why.ble.Central;
+import why.ble.Peripheral;
+import why.ble.Characteristic;
+import why.ble.Service;
 import tink.state.*;
 import tink.Chunk;
 
@@ -58,7 +58,7 @@ class NodeCentral extends CentralBase {
 	
 }
 
-@:allow(ble.centrals)
+@:allow(why.ble.centrals)
 class NodePeripheral implements PeripheralObject {
 	public var id(default, null):String;
 	public var mac(default, null):String;
