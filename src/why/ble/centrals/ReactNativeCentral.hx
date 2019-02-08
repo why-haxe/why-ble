@@ -149,7 +149,8 @@ class ReactNativeCharacteristic implements CharacteristicObject {
 	}
 	
 	public function write(data:Chunk, withoutResponse:Bool):Promise<Noise> {
-		return Promise.ofJsPromise((withoutResponse ? native.writeWithoutResponse : native.writeWithResponse)(Base64.encode(data)));
+		var payload = Base64.encode(data);
+		return Promise.ofJsPromise(withoutResponse ? native.writeWithoutResponse(payload) : native.writeWithResponse(payload));
 	}
 	
 	public function subscribe(handler:Callback<Outcome<Chunk, Error>>):CallbackLink {
