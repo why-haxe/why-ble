@@ -45,6 +45,7 @@ interface CentralObject {
 	function stopScan():Void;
 }
 
+@:allow(why.ble)
 class Peripherals extends ObservableMap<String, Peripheral> {
 	public var discovered(default, null):Signal<Peripheral>;
 	public var gone(default, null):Signal<Peripheral>;
@@ -79,7 +80,7 @@ class Peripherals extends ObservableMap<String, Peripheral> {
 		return ret;
 	}
 	
-	public inline function refresh(k) {
+	inline function refresh(k) {
 		date.set(k, Date.now());
 	}
 	
