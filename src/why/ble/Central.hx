@@ -53,31 +53,33 @@ class Peripherals extends ObservableMap<String, Peripheral> {
 	public var timeout:Int = 120000; // ms
 	
 	var date:Map<String, Date>;
-	var discoveredTrigger:SignalTrigger<Peripheral>;
-	var goneTrigger:SignalTrigger<Peripheral>;
 	
 	public function new() {
 		super(new Map());
+		
 		date = new Map();
-		discovered = discoveredTrigger = Signal.trigger();
-		gone = goneTrigger = Signal.trigger();
+		
+		discovered = changes.select(function(v) return switch v {
+			case {from: None, to: Some(value)}: Some(value);
+			case _: None;
+		});
+		
+		gone = changes.select(function(v) return switch v {
+			case {from: Some(value), to: None}: Some(value);
+			case _: None;
+		});
+		
 		check();
 	}
 	
 	override function set(k, v) {
-		var existed = map.exists(k);
-		super.set(k, v);
 		date.set(k, Date.now());
-		if(!existed) discoveredTrigger.trigger(v);
+		super.set(k, v);
 	}
 	
 	override function remove(k) {
-		var existed = map.exists(k);
-		var value = map.get(k);
-		var ret = super.remove(k);
 		date.remove(k);
-		if(existed) goneTrigger.trigger(value);
-		return ret;
+		return super.remove(k);
 	}
 	
 	inline function refresh(k) {
