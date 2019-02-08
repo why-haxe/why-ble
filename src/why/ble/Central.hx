@@ -52,12 +52,12 @@ class Peripherals extends ObservableMap<String, Peripheral> {
 	
 	public var timeout:Int = 120000; // ms
 	
-	var date:Map<String, Date>;
+	var lastSeen:Map<String, Float>;
 	
 	public function new() {
 		super(new Map());
 		
-		date = new Map();
+		lastSeen = new Map();
 		
 		discovered = changes.select(function(v) return switch v {
 			case {from: None, to: Some(value)}: Some(value);
@@ -73,24 +73,24 @@ class Peripherals extends ObservableMap<String, Peripheral> {
 	}
 	
 	override function set(k, v) {
-		date.set(k, Date.now());
+		refresh(k);
 		super.set(k, v);
 	}
 	
 	override function remove(k) {
-		date.remove(k);
+		lastSeen.remove(k);
 		return super.remove(k);
 	}
 	
 	inline function refresh(k) {
-		date.set(k, Date.now());
+		lastSeen.set(k, Date.now().getTime());
 	}
 	
 	function check() {
 		haxe.Timer.delay(function() {
 			var now = Date.now().getTime();
 			var expired = [];
-			for(id in keys()) if(now - date.get(id).getTime() > timeout) expired.push(id);
+			for(id in keys()) if(now - lastSeen.get(id) > timeout) expired.push(id);
 			for(id in expired) remove(id);
 			check();
 		}, Std.int(timeout / 10));
