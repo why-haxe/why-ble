@@ -1,5 +1,9 @@
 package why.ble.centrals;
 
+#if !react_native_ble_plx
+	#error "Requires the react-native-ble-plx extern library"
+#end
+
 import why.ble.Central;
 import why.ble.Peripheral;
 import why.ble.Service;
