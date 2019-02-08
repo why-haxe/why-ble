@@ -49,18 +49,24 @@ class Peripherals extends ObservableMap<String, Peripheral> {
 	public var discovered(default, null):Signal<Peripheral>;
 	public var gone(default, null):Signal<Peripheral>;
 	
+	public var timeout:Int = 120000; // ms
+	
+	var date:Map<String, Date>;
 	var discoveredTrigger:SignalTrigger<Peripheral>;
 	var goneTrigger:SignalTrigger<Peripheral>;
 	
 	public function new() {
 		super(new Map());
+		date = new Map();
 		discovered = discoveredTrigger = Signal.trigger();
 		gone = goneTrigger = Signal.trigger();
+		check();
 	}
 	
 	override function set(k, v) {
 		var existed = map.exists(k);
 		super.set(k, v);
+		date.set(k, Date.now());
 		if(!existed) discoveredTrigger.trigger(v);
 	}
 	
@@ -68,8 +74,23 @@ class Peripherals extends ObservableMap<String, Peripheral> {
 		var existed = map.exists(k);
 		var value = map.get(k);
 		var ret = super.remove(k);
+		date.remove(k);
 		if(existed) goneTrigger.trigger(value);
 		return ret;
+	}
+	
+	public inline function refresh(k) {
+		date.set(k, Date.now());
+	}
+	
+	function check() {
+		haxe.Timer.delay(function() {
+			var now = Date.now().getTime();
+			var expired = [];
+			for(id in keys()) if(now - date.get(id).getTime() > timeout) expired.push(id);
+			for(id in expired) remove(id);
+			check();
+		}, Std.int(timeout / 10));
 	}
 }
 
