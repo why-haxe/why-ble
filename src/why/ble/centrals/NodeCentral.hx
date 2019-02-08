@@ -41,6 +41,7 @@ class NodeCentral extends CentralBase {
 					var peripheral = new NodePeripheral(native);
 					peripherals.set(native.id, peripheral);
 				case (cast _:NodePeripheral) => p:
+					peripherals.refresh(native.id);
 					p.update(native);
 			}
 		});

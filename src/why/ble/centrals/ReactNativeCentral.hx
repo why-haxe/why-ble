@@ -44,6 +44,7 @@ class ReactNativeCentral extends CentralBase {
 						var peripheral = new ReactNativePeripheral(device);
 						peripherals.set(device.id, peripheral);
 					case (cast _:ReactNativePeripheral) => p:
+						peripherals.refresh(device.id);
 						p.update(device);
 				}
 			}
