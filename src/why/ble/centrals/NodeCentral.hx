@@ -40,7 +40,6 @@ class NodeCentral extends CentralBase {
 				case null:
 					var peripheral = new NodePeripheral(native);
 					peripherals.set(native.id, peripheral);
-					discoveredTrigger.trigger((peripheral:Peripheral));
 				case (cast _:NodePeripheral) => p:
 					p.update(native);
 			}

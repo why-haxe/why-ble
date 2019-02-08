@@ -32,7 +32,7 @@ class ReactNativeCentral extends CentralBase {
 					case Success(state): statusState.set(NativeTools.status(state));
 					case Failure(_):
 				}
-				manager.onStateChange(function(s:NativeState) statusState.set(NativeTools.status(s)));
+				manager.onStateChange(function(s) statusState.set(NativeTools.status(s)));
 			});
 	}
 	
@@ -43,7 +43,6 @@ class ReactNativeCentral extends CentralBase {
 					case null:
 						var peripheral = new ReactNativePeripheral(device);
 						peripherals.set(device.id, peripheral);
-						discoveredTrigger.trigger(peripheral);
 					case (cast _:ReactNativePeripheral) => p:
 						p.update(device);
 				}

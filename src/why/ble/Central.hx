@@ -14,17 +14,15 @@ abstract Central(CentralObject) from CentralObject to CentralObject {
 class CentralBase implements CentralObject {
 	
 	public var status(default, null):Observable<Status>;
-	public var peripherals(default, null):ObservableMap<String, Peripheral>;
+	public var peripherals(default, null):Peripherals;
 	public var advertisements(default, null):Signal<Peripheral>;
-	public var discovered(default, null):Signal<Peripheral>;
 	
 	var statusState:State<Status>;
-	var discoveredTrigger:SignalTrigger<Peripheral>;
 	
 	function new() {
 		
 		status = statusState = new State<Status>(Unknown);
-		peripherals = new ObservableMap(new Map());
+		peripherals = new Peripherals();
 		
 		advertisements = Signal.generate(function(trigger) {
 			var bindings:CallbackLink = null;
@@ -33,9 +31,7 @@ class CentralBase implements CentralObject {
 				bindings = [for(peripheral in list) peripheral.advertisement.bind(null, function(_) trigger(peripheral))];
 			});
 		});
-		discovered = discoveredTrigger = Signal.trigger();
 	}
-	
 	
 	public function startScan():Void throw 'abstract';
 	public function stopScan():Void throw 'abstract';
@@ -43,11 +39,38 @@ class CentralBase implements CentralObject {
 
 interface CentralObject {
 	var status(default, null):Observable<Status>;
-	var peripherals(default, null):ObservableMap<String, Peripheral>;
+	var peripherals(default, null):Peripherals;
 	var advertisements(default, null):Signal<Peripheral>;
-	var discovered(default, null):Signal<Peripheral>;
 	function startScan():Void;
 	function stopScan():Void;
+}
+
+class Peripherals extends ObservableMap<String, Peripheral> {
+	public var discovered(default, null):Signal<Peripheral>;
+	public var gone(default, null):Signal<Peripheral>;
+	
+	var discoveredTrigger:SignalTrigger<Peripheral>;
+	var goneTrigger:SignalTrigger<Peripheral>;
+	
+	public function new() {
+		super(new Map());
+		discovered = discoveredTrigger = Signal.trigger();
+		gone = goneTrigger = Signal.trigger();
+	}
+	
+	override function set(k, v) {
+		var existed = map.exists(k);
+		super.set(k, v);
+		if(!existed) discoveredTrigger.trigger(v);
+	}
+	
+	override function remove(k) {
+		var existed = map.exists(k);
+		var value = map.get(k);
+		var ret = super.remove(k);
+		if(existed) goneTrigger.trigger(value);
+		return ret;
+	}
 }
 
 
