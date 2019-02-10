@@ -12,6 +12,26 @@ abstract Peripheral(PeripheralObject) from PeripheralObject to PeripheralObject 
 			.next(function(services) return Promise.inParallel([for(service in services) service.discoverCharacteristics()]))
 			.next(function(list) return list.fold(function(item, all:Array<Characteristic>) return all.concat(item), []));
 	}
+	
+	public function findService(filter:Service->Bool):Promise<Service> {
+		return this.discoverServices()
+			.next(function(services) {
+				return switch services.find(filter) {
+					case null: new Error(NotFound, 'Service not found');
+					case v: v;
+				}
+			});
+	}
+	
+	public function findCharacteristic(filter:Characteristic->Bool):Promise<Characteristic> {
+		return discoverCharacteristics()
+			.next(function(chars) {
+				return switch chars.find(filter) {
+					case null: new Error(NotFound, 'Characteristic not found');
+					case v: v;
+				}
+			});
+	}
 }
 
 interface PeripheralObject {
