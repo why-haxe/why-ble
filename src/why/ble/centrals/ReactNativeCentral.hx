@@ -22,13 +22,19 @@ using tink.CoreApi;
 
 class ReactNativeCentral extends CentralBase {
 	
+	public static var inst(get, null):ReactNativeCentral;
+	static function get_inst() {
+		if(inst == null) inst = new ReactNativeCentral();
+		return inst;
+	}
+	
 	static var manager(get, null):NativeManager;
 	static function get_manager() {
 		if(manager == null) manager = new NativeManager();
 		return manager;
 	}
 	
-	public function new() {
+	function new() {
 		super();
 		Promise.ofJsPromise(manager.state())
 			.handle(function(o) {
