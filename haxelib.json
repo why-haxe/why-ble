@@ -1,6 +1,7 @@
 {
 	"name": "why-ble",
 	"classPath": "src",
+	"description": "Abstraction for BLE (Bluetooth Low Enerygy)",
 	"dependencies": {
 		"tink_state": "",
 		"tink_chunk": ""
