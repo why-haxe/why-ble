@@ -1,18 +1,18 @@
 {
-  "name": "why-ble",
-  "license": "MIT",
-  "tags": [
-    "bluetooth",
-    "ble"
-  ],
-  "classPath": "src",
-  "contributors": [
-    "kevinresol"
-  ],
-  "releasenote": "initial release",
-  "version": "0.0.0",
-  "dependencies": {
-    "tink_state": "",
-    "tink_chunk": ""
-  }
+	"name": "why-ble",
+	"classPath": "src",
+	"dependencies": {
+		"tink_state": "",
+		"tink_chunk": ""
+	},
+	"contributors": [
+		"kevinresol"
+	],
+	"version": "0.1.0",
+	"releasenote": "Initial release",
+	"tags": [
+		"bluetooth",
+		"ble"
+	],
+	"license": "MIT"
 }
