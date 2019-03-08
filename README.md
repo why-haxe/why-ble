@@ -44,6 +44,11 @@ interface Characteristic {
 }
 ```
 
+## Implementations
+
+- NobleCentral: based on the node module `noble`
+- ReactNativeCentral: based on the react native library `react-native-ble-plx`
+
 
 ## Usage Example
 
