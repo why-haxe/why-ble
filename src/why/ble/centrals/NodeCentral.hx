@@ -48,10 +48,12 @@ class NodeCentral extends CentralBase {
 	}
 	
 	override function startScan():Void {
+		super.startScan();
 		noble.startScanning([], true);
 	}
 	
 	override function stopScan():Void {
+		super.stopScan();
 		noble.stopScanning();
 	}
 	

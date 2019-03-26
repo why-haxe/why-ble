@@ -13,14 +13,17 @@ abstract Central(CentralObject) from CentralObject to CentralObject {
 
 class CentralBase implements CentralObject {
 	
+	public var scanning(default, null):Observable<Bool>;
 	public var status(default, null):Observable<Status>;
 	public var peripherals(default, null):Peripherals;
 	public var advertisements(default, null):Signal<Peripheral>;
 	
+	var scanningState:State<Bool>;
 	var statusState:State<Status>;
 	
 	function new() {
 		
+		scanning = scanningState = new State<Bool>(false);
 		status = statusState = new State<Status>(Unknown);
 		peripherals = new Peripherals();
 		
@@ -33,11 +36,17 @@ class CentralBase implements CentralObject {
 		});
 	}
 	
-	public function startScan():Void throw 'abstract';
-	public function stopScan():Void throw 'abstract';
+	public function startScan():Void {
+		scanningState.set(true);
+	}
+	
+	public function stopScan():Void {	
+		scanningState.set(false);
+	}
 }
 
 interface CentralObject {
+	var scanning(default, null):Observable<Bool>;
 	var status(default, null):Observable<Status>;
 	var peripherals(default, null):Peripherals;
 	var advertisements(default, null):Signal<Peripheral>;

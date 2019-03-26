@@ -47,6 +47,7 @@ class ReactNativeCentral extends CentralBase {
 	}
 	
 	override function startScan():Void {
+		super.startScan();
 		manager.startDeviceScan(null, null, function(err, device) {
 			if(device != null) {
 				switch peripherals.get(device.id) {
@@ -62,6 +63,7 @@ class ReactNativeCentral extends CentralBase {
 	}
 	
 	override function stopScan():Void {
+		super.stopScan();
 		manager.stopDeviceScan();
 	}
 }
