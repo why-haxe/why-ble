@@ -36,13 +36,15 @@ class ReactNativeCentral extends CentralBase {
 	
 	function new() {
 		super();
+		
+		manager.onStateChange(function(s) statusState.set(NativeTools.status(s)));
+		
 		Promise.ofJsPromise(manager.state())
 			.handle(function(o) {
 				switch o {
 					case Success(state): statusState.set(NativeTools.status(state));
 					case Failure(_):
 				}
-				manager.onStateChange(function(s) statusState.set(NativeTools.status(s)));
 			});
 	}
 	
