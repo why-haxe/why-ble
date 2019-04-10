@@ -15,10 +15,12 @@ import react.native.ble_plx.Device as NativeDevice;
 import react.native.ble_plx.Service as NativeService;
 import react.native.ble_plx.Service as NativeService;
 import react.native.ble_plx.Characteristic as NativeCharacteristic;
+import react.native.ble_plx.BleError;
 import tink.Chunk;
 import tink.state.*;
 
 using tink.CoreApi;
+using why.ble.centrals.ReactNativeCentral.Helper;
 
 class ReactNativeCentral extends CentralBase {
 	
@@ -39,7 +41,7 @@ class ReactNativeCentral extends CentralBase {
 		
 		manager.onStateChange(function(s) statusState.set(NativeTools.status(s)));
 		
-		Promise.ofJsPromise(manager.state())
+		manager.state().toTinkPromise()
 			.handle(function(o) {
 				switch o {
 					case Success(state): statusState.set(NativeTools.status(state));
@@ -99,18 +101,18 @@ class ReactNativePeripheral implements PeripheralObject {
 	
 	
 	public function connect():Promise<Noise> {
-		var promise = Promise.ofJsPromise(native.connect());
+		var promise = native.connect().toTinkPromise();
 		promise.handle(function(o) if(o.isSuccess()) connectedState.set(true));
 		return promise;
 	}
 	
 	public function disconnect():Promise<Noise> {
-		return Promise.ofJsPromise(native.cancelConnection());
+		return native.cancelConnection().toTinkPromise();
 	}
 	
 	public function discoverServices():Promise<Array<Service>> {
-		return Promise.ofJsPromise(native.discoverAllServicesAndCharacteristics())
-			.next(function(_) return native.services())
+		return native.discoverAllServicesAndCharacteristics().toTinkPromise()
+			.next(function(_) return native.services().toTinkPromise())
 			.next(function(services):Array<Service> return [for(service in services) (new ReactNativeService(service):Service)]);
 	}
 	
@@ -133,7 +135,7 @@ class ReactNativeService implements ServiceObject {
 	} 
 	
 	public function discoverCharacteristics():Promise<Array<Characteristic>> {
-		return Promise.ofJsPromise(native.characteristics())
+		return native.characteristics().toTinkPromise()
 			.next(function(characteristics):Array<Characteristic> return [for(characteristic in characteristics) (new ReactNativeCharacteristic(characteristic):Characteristic)]);
 	}
 	
@@ -159,19 +161,29 @@ class ReactNativeCharacteristic implements CharacteristicObject {
 	}
 	
 	public function read():Promise<Chunk> {
-		return Promise.ofJsPromise(native.read())
+		return native.read().toTinkPromise()
 			.next(function(char):Chunk return Base64.decode(char.value));
 	}
 	
 	public function write(data:Chunk, withoutResponse:Bool):Promise<Noise> {
 		var payload = Base64.encode(data);
-		return Promise.ofJsPromise(withoutResponse ? native.writeWithoutResponse(payload) : native.writeWithResponse(payload));
+		return (withoutResponse ? native.writeWithoutResponse(payload) : native.writeWithResponse(payload)).toTinkPromise();
 	}
 	
 	public function subscribe(handler:Callback<Outcome<Chunk, Error>>):CallbackLink {
-		return native.monitor(function(err, char) handler.invoke(err != null ? Failure(Error.ofJsError(err)) : Success(Base64.decode(char.value)))).remove;
+		return native.monitor(function(err, char) handler.invoke(err != null ? Failure(err.toTinkError()) : Success(Base64.decode(char.value)))).remove;
 	}
 	
+}
+
+class Helper {
+	public static function toTinkError<T>(e:BleError):Error {
+		return tink.core.Error.withData((e.errorCode:Int), e.message, e);
+	}
+	
+	public static function toTinkPromise<T>(promise:js.Promise<T>):Promise<T> {
+		return Future.async(function(cb) promise.then(function(a) cb(Success(a))).catchError(function(e:BleError) cb(Failure(e.toTinkError()))));
+	}
 }
 
 private class NativeTools {
@@ -185,8 +197,6 @@ private class NativeTools {
 			serviceData: [for(uuid in native.serviceData.keys()) {uuid: uuid, data: Base64.decode(native.serviceData[uuid])}],
 		}
 	}
-	
-	
 	
 	public static function status(status:NativeState):Status {
 		return switch status {
