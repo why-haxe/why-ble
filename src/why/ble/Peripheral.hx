@@ -34,6 +34,24 @@ abstract Peripheral(PeripheralObject) from PeripheralObject to PeripheralObject 
 	}
 }
 
+class PeripheralBase implements PeripheralObject {
+	public var id(default, null):String;
+	public var mac(default, null):String;
+	public var connectable(default, null):Observable<Bool>;
+	public var rssi(default, null):Observable<Int>;
+	public var advertisement(default, null):Observable<Advertisement>;
+	public var connected(default, null):Observable<Bool>;
+	
+	var connection:Promise<CallbackLink>;
+	var requests = 0;
+	public function connect():Promise<CallbackLink> {
+		if(requests++ == 0) connection = getConnection();
+		return connection.next(function(cnx):CallbackLink return function() if(--requests == 0) cnx.dissolve());
+	}
+	public function discoverServices():Promise<Array<Service>> throw 'abstract';
+	function getConnection():Promise<CallbackLink> throw 'abstract';
+}
+
 interface PeripheralObject {
 	var id(default, null):String;
 	var mac(default, null):String;
@@ -42,7 +60,6 @@ interface PeripheralObject {
 	var advertisement(default, null):Observable<Advertisement>;
 	var connected(default, null):Observable<Bool>;
 	
-	function connect():Promise<Noise>;
-	function disconnect():Promise<Noise>;
+	function connect():Promise<CallbackLink>;
 	function discoverServices():Promise<Array<Service>>;
 }

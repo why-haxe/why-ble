@@ -36,12 +36,18 @@ class CentralBase implements CentralObject {
 		});
 	}
 	
-	public function startScan():Void {
+	function startScan():Void {
 		scanningState.set(true);
 	}
 	
-	public function stopScan():Void {	
+	function stopScan():Void {	
 		scanningState.set(false);
+	}
+	
+	var requests = 0;
+	public function scan():CallbackLink {
+		if(requests++ == 0) startScan();
+		return function() if(--requests == 0) stopScan();
 	}
 }
 
@@ -50,8 +56,7 @@ interface CentralObject {
 	var status(default, null):Observable<Status>;
 	var peripherals(default, null):Peripherals;
 	var advertisements(default, null):Signal<Peripheral>;
-	function startScan():Void;
-	function stopScan():Void;
+	function scan():CallbackLink;
 }
 
 @:allow(why.ble)

@@ -73,14 +73,7 @@ class ReactNativeCentral extends CentralBase {
 }
 
 @:allow(why.ble.centrals)
-class ReactNativePeripheral implements PeripheralObject {
-	public var id(default, null):String;
-	public var mac(default, null):String;
-	public var connectable(default, null):Observable<Bool>;
-	public var rssi(default, null):Observable<Int>;
-	public var advertisement(default, null):Observable<Advertisement>;
-	public var connected(default, null):Observable<Bool>;
-	
+class ReactNativePeripheral extends PeripheralBase {
 	var native:NativeDevice;
 	var connectableState:State<Bool>;
 	var connectedState:State<Bool>;
@@ -96,21 +89,22 @@ class ReactNativePeripheral implements PeripheralObject {
 		rssi = rssiState = new State(native.rssi);
 		advertisement = advertisementState = new State(NativeTools.advertisement(native));
 		
-		native.onDisconnected(function(_, _) connectedState.set(false));
 	} 
 	
-	
-	public function connect():Promise<Noise> {
-		var promise = native.connect().toTinkPromise();
-		promise.handle(function(o) if(o.isSuccess()) connectedState.set(true));
-		return promise;
+	override function getConnection():Promise<CallbackLink> {
+		return native.connect().toTinkPromise()
+			.next(function(_):CallbackLink {
+				connectedState.set(true);
+				var listener = native.onDisconnected(function(_, _) connectedState.set(false));
+				return function() {
+					connectedState.set(false);
+					native.cancelConnection();
+					listener.remove();
+				}
+			});
 	}
 	
-	public function disconnect():Promise<Noise> {
-		return native.cancelConnection().toTinkPromise();
-	}
-	
-	public function discoverServices():Promise<Array<Service>> {
+	override function discoverServices():Promise<Array<Service>> {
 		return native.discoverAllServicesAndCharacteristics().toTinkPromise()
 			.next(function(_) return native.services().toTinkPromise())
 			.next(function(services):Array<Service> return [for(service in services) (new ReactNativeService(service):Service)]);
