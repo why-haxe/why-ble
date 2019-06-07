@@ -92,15 +92,21 @@ class ReactNativePeripheral extends PeripheralBase {
 	} 
 	
 	override function getConnection():Promise<CallbackLink> {
-		return native.connect().toTinkPromise()
-			.next(function(_):CallbackLink {
-				connectedState.set(true);
-				var listener = native.onDisconnected(function(_, _) connectedState.set(false));
-				return function() {
-					connectedState.set(false);
-					native.cancelConnection();
-					listener.remove();
-				}
+		
+		function whenConnected<T>(_:T):CallbackLink {
+			connectedState.set(true);
+			var listener = native.onDisconnected(function(_, _) connectedState.set(false));
+			return function() {
+				connectedState.set(false);
+				native.cancelConnection();
+				listener.remove();
+			}
+		}
+		
+		return native.isConnected().toTinkPromise()
+			.next(function(connected) return {
+				if(connected) whenConnected(null);
+				else native.connect().toTinkPromise().next(whenConnected);
 			});
 	}
 	
