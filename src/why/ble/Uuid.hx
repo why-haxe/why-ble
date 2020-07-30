@@ -27,6 +27,12 @@ abstract Uuid(Chunk) to Chunk {
 		return this.toHex();
 	}
 	
+	public inline function hyphenate():String {
+		// 4+2+2+2+6 = 16bytes
+		var s = full().toString();
+		return s.substring(0, 8) + '-' + s.substring(8, 12) + '-' + s.substring(12, 16) + '-' + s.substring(16, 20) + '-' + s.substring(20, 32);
+	}
+	
 	@:op(A == B)
 	public function equals(that:Uuid):Bool {
 		return this.length == that.length ? compare(this, that) : compare(full(), that.full());

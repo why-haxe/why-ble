@@ -18,6 +18,7 @@ import react.native.ble_plx.Characteristic as NativeCharacteristic;
 import react.native.ble_plx.BleError;
 import tink.Chunk;
 import tink.state.*;
+import tink.core.ext.Subscription;
 
 using tink.CoreApi;
 using why.ble.centrals.ReactNativeCentral.Helper;
@@ -73,7 +74,7 @@ class ReactNativeCentral extends CentralBase {
 }
 
 @:allow(why.ble.centrals)
-class ReactNativePeripheral extends PeripheralBase {
+private class ReactNativePeripheral extends PeripheralBase {
 	var native:NativeDevice;
 	var connectableState:State<Bool>;
 	var connectedState:State<Bool>;
@@ -116,6 +117,10 @@ class ReactNativePeripheral extends PeripheralBase {
 			.next(function(services):Array<Service> return [for(service in services) (new ReactNativeService(service):Service)]);
 	}
 	
+	override public function requestConnectionPriority(priority:ConnectionPriority):Promise<Noise> {
+		return Promise.ofJsPromise(native.requestConnectionPriority(priority));
+	}
+	
 	function update(native:NativeDevice) {
 		connectableState.set(native.isConnectable);
 		rssiState.set(native.rssi);
@@ -123,7 +128,7 @@ class ReactNativePeripheral extends PeripheralBase {
 	}
 	
 }
-class ReactNativeService implements ServiceObject {
+private class ReactNativeService implements ServiceObject {
 	
 	public var uuid(default, null):Uuid;
 	
@@ -140,7 +145,7 @@ class ReactNativeService implements ServiceObject {
 	}
 	
 }
-class ReactNativeCharacteristic implements CharacteristicObject {
+private class ReactNativeCharacteristic implements CharacteristicObject {
 	
 	public var uuid(default, null):Uuid;
 	public var properties(default, null):Iterable<Property>;
@@ -170,8 +175,17 @@ class ReactNativeCharacteristic implements CharacteristicObject {
 		return (withoutResponse ? native.writeWithoutResponse(payload) : native.writeWithResponse(payload)).toTinkPromise();
 	}
 	
-	public function subscribe(handler:Callback<Outcome<Chunk, Error>>):CallbackLink {
-		return native.monitor(function(err, char) handler.invoke(err != null ? Failure(err.toTinkError()) : Success(Base64.decode(char.value)))).remove;
+	public function subscribe(handler:Callback<Chunk>):Subscription {
+		var error = Future.trigger();
+		
+		var sub = native.monitor(function(err, char) {
+			if(err != null)
+				error.trigger(tink.core.Error.ofJsError(err))
+			else
+				handler.invoke(Base64.decode(char.value));
+		});
+		
+		return new SimpleSubscription(sub.remove, error);
 	}
 	
 }

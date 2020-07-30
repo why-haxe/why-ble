@@ -49,6 +49,13 @@ class PeripheralBase implements PeripheralObject {
 		return connection.next(function(cnx):CallbackLink return function() if(--requests == 0) cnx.dissolve());
 	}
 	public function discoverServices():Promise<Array<Service>> throw 'abstract';
+	public function requestConnectionPriority(priority:ConnectionPriority):Promise<Noise> throw 'abstract';
+	public function dispose():Void {
+		connectable = null;
+		connected = null;
+		rssi = null;
+		advertisement = null;
+	};
 	function getConnection():Promise<CallbackLink> throw 'abstract';
 }
 
@@ -62,4 +69,12 @@ interface PeripheralObject {
 	
 	function connect():Promise<CallbackLink>;
 	function discoverServices():Promise<Array<Service>>;
+	function requestConnectionPriority(priority:ConnectionPriority):Promise<Noise>;
+	function dispose():Void;
+}
+
+enum abstract ConnectionPriority(Int) to Int {
+	var Balanced = 0;
+	var High = 1;
+	var LowPower = 2;
 }

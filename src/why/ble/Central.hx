@@ -27,11 +27,14 @@ class CentralBase implements CentralObject {
 		status = statusState = new State<Status>(Unknown);
 		peripherals = new Peripherals();
 		
+		trace('new central >>>>>>>>>>>>>>>>>>>>>>>>>>>>');
 		advertisements = Signal.generate(function(trigger) {
+			trace('adv >>>>>>>>>>>>>>>>>>>>>>>>>>>>');
 			var bindings:CallbackLink = null;
 			peripherals.observableValues.bind(null, function(list) {
-				bindings.dissolve();
-				bindings = [for(peripheral in list) peripheral.advertisement.bind(null, function(_) trigger(peripheral))];
+				trace('peripherals changed >>>>>>>>>>>>>>>>>>>>>');
+				// bindings.dissolve();
+				// bindings = [for(peripheral in list) peripheral.advertisement.bind(null, function(_) trigger(peripheral))];
 			});
 		});
 	}
@@ -64,7 +67,7 @@ class Peripherals extends ObservableMap<String, Peripheral> {
 	public var discovered(default, null):Signal<Peripheral>;
 	public var gone(default, null):Signal<Peripheral>;
 	
-	public var timeout:Int = 120000; // ms
+	public var timeout:Int = 120; // ms
 	
 	var lastSeen:Map<String, Float>;
 	
@@ -93,6 +96,10 @@ class Peripherals extends ObservableMap<String, Peripheral> {
 	
 	override function remove(k) {
 		lastSeen.remove(k);
+		switch map.get(k) {
+			case null:
+			case v: v.dispose();
+		}
 		return super.remove(k);
 	}
 	
@@ -101,13 +108,11 @@ class Peripherals extends ObservableMap<String, Peripheral> {
 	}
 	
 	function check() {
-		haxe.Timer.delay(function() {
-			var now = Date.now().getTime();
-			var expired = [];
-			for(id in keys()) if(now - lastSeen.get(id) > timeout) expired.push(id);
-			for(id in expired) remove(id);
-			check();
-		}, Std.int(timeout / 10));
+		var now = Date.now().getTime();
+		var expired = [];
+		for(id in map.keys()) if(now - lastSeen.get(id) > timeout) expired.push(id);
+		for(id in expired) remove(id);
+		haxe.Timer.delay(check, Std.int(timeout / 10));
 	}
 }
 
