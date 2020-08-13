@@ -119,23 +119,29 @@ class NodePeripheral extends PeripheralBase {
 
 	override function getConnection():Promise<CallbackLink> {
 		return Future.async(function(cb) {
-			native.connect(function(err) {
-				if (err != null)
-					cb(Failure(Error.ofJsError(err)))
-				else
-					cb(Success((function() native.disconnect():CallbackLink)));
-			});
+			if(native == null)
+				cb(Failure(new Error('Disposed')));
+			else
+				native.connect(function(err) {
+					if (err != null)
+						cb(Failure(Error.ofJsError(err)))
+					else
+						cb(Success((function() native.disconnect():CallbackLink)));
+				});
 		});
 	}
 
 	override function discoverServices():Promise<Array<Service>> {
 		return Future.async(function(cb) {
-			native.discoverServices([], function(err, services) {
-				if (err != null)
-					cb(Failure(Error.ofJsError(err)))
-				else
-					cb(Success([for (s in services) (new NodeService(s) : Service)]));
-			});
+			if(native == null)
+				cb(Failure(new Error('Disposed')));
+			else
+				native.discoverServices([], function(err, services) {
+					if (err != null)
+						cb(Failure(Error.ofJsError(err)))
+					else
+						cb(Success([for (s in services) (new NodeService(s) : Service)]));
+				});
 		});
 	}
 }
