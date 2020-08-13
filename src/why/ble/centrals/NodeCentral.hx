@@ -35,14 +35,14 @@ class NodeCentral extends CentralBase {
 				native.on('connect', startScan);
 			}
 
-			// switch peripherals.get(native.id) {
-			// 	case null:
-			// 		var peripheral = new NodePeripheral(native);
-			// 		peripherals.set(native.id, peripheral);
-			// 	case(cast _ : NodePeripheral) => p:
-			// 		peripherals.refresh(native.id);
-			// 		p.update(native);
-			// }
+			switch peripherals.directGet(native.id) {
+				case null:
+					var peripheral = new NodePeripheral(native);
+					peripherals.set(native.id, peripheral);
+				case(cast _ : NodePeripheral) => p:
+					peripherals.refresh(native.id);
+					p.update(native);
+			}
 		});
 	}
 
@@ -188,16 +188,12 @@ class NodeCharacteristic implements CharacteristicObject {
 	public function write(data:Chunk, withoutResponse:Bool):Promise<Noise> {
 		final key = StringTools.lpad(StringTools.hex(Std.random(1 << 28), 6), '0', 6);
 		return new Future(cb -> {
-			Sys.println('${Date.now().toString()}: $key: reg');
 			native.once('write', function onWrite(err) {
 				Sys.println('${Date.now().toString()}: $key: fired');
 				cb(err != null ? Failure(Error.ofJsError(err)) : Success(Noise));
 			});
 			native.write(data.toBuffer(), withoutResponse);
-			() -> {
-				Sys.println('${Date.now().toString()}: $key: unreg');
-				native.removeListener('write', onWrite);
-			}
+			native.removeListener.bind('write', onWrite);
 		});
 	}
 

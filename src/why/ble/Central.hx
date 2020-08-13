@@ -67,8 +67,8 @@ class Peripherals extends ObservableMap<String, Peripheral> {
 	public var discovered(default, null):Signal<Peripheral>;
 	public var gone(default, null):Signal<Peripheral>;
 	
-	public var timeout:Int = 120; // ms
 	
+	public var timeout:Int = 120000; // ms
 	var lastSeen:Map<String, Float>;
 	
 	public function new() {
@@ -89,6 +89,9 @@ class Peripherals extends ObservableMap<String, Peripheral> {
 		check();
 	}
 	
+	public inline function directGet(k) {
+		return map.get(k);
+	}
 	override function set(k, v) {
 		refresh(k);
 		super.set(k, v);
