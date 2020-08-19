@@ -105,6 +105,10 @@ class NodePeripheral extends PeripheralBase {
 			target.removeListener('disconnect', onDisconnect);
 		}
 	}
+	
+	override function get_disposed() {
+		return native == null;
+	}
 
 	override function dispose():Void {
 		native = null;
@@ -119,7 +123,7 @@ class NodePeripheral extends PeripheralBase {
 
 	override function getConnection():Promise<CallbackLink> {
 		return Future.async(function(cb) {
-			if(native == null)
+			if(disposed)
 				cb(Failure(new Error('Disposed')));
 			else
 				native.connect(function(err) {
@@ -133,7 +137,7 @@ class NodePeripheral extends PeripheralBase {
 
 	override function discoverServices():Promise<Array<Service>> {
 		return Future.async(function(cb) {
-			if(native == null)
+			if(disposed)
 				cb(Failure(new Error('Disposed')));
 			else
 				native.discoverServices([], function(err, services) {
@@ -192,10 +196,8 @@ class NodeCharacteristic implements CharacteristicObject {
 	}
 
 	public function write(data:Chunk, withoutResponse:Bool):Promise<Noise> {
-		final key = StringTools.lpad(StringTools.hex(Std.random(1 << 28), 6), '0', 6);
 		return new Future(cb -> {
 			native.once('write', function onWrite(err) {
-				Sys.println('${Date.now().toString()}: $key: fired');
 				cb(err != null ? Failure(Error.ofJsError(err)) : Success(Noise));
 			});
 			native.write(data.toBuffer(), withoutResponse);

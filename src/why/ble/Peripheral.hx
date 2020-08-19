@@ -41,6 +41,7 @@ class PeripheralBase implements PeripheralObject {
 	public var rssi(default, null):Observable<Int>;
 	public var advertisement(default, null):Observable<Advertisement>;
 	public var connected(default, null):Observable<Bool>;
+	public var disposed(get, never):Bool;
 	
 	var connection:Promise<CallbackLink>;
 	var requests = 0;
@@ -56,6 +57,7 @@ class PeripheralBase implements PeripheralObject {
 		rssi = null;
 		advertisement = null;
 	};
+	function get_disposed() return false;
 	function getConnection():Promise<CallbackLink> throw 'abstract';
 }
 
@@ -66,6 +68,7 @@ interface PeripheralObject {
 	var rssi(default, null):Observable<Int>;
 	var advertisement(default, null):Observable<Advertisement>;
 	var connected(default, null):Observable<Bool>;
+	var disposed(get, never):Bool;
 	
 	function connect():Promise<CallbackLink>;
 	function discoverServices():Promise<Array<Service>>;
