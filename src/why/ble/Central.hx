@@ -101,7 +101,9 @@ class Peripherals extends ObservableMap<String, Peripheral> {
 		lastSeen.remove(k);
 		switch map.get(k) {
 			case null:
-			case v: v.dispose();
+			case v:
+				if (!Observable.untracked(() -> v.connected.value))
+					v.dispose();
 		}
 		return super.remove(k);
 	}
