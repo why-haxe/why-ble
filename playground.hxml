@@ -1,0 +1,8 @@
+-cp tests
+-main Playground
+-js bin/playground/index.js
+
+
+-lib hxnodejs
+-lib why-ble
+-lib why-bluez

@@ -1,0 +1,4 @@
+# @install: lix --silent download "gh://github.com/haxetink/tink_xml#d660d82d73848bf3a9be9ea0ed22e228bcfe2648" into tink_xml/0.2.0/github/d660d82d73848bf3a9be9ea0ed22e228bcfe2648
+-lib tink_macro
+-cp ${HAXE_LIBCACHE}/tink_xml/0.2.0/github/d660d82d73848bf3a9be9ea0ed22e228bcfe2648/src
+-D tink_xml=0.2.0

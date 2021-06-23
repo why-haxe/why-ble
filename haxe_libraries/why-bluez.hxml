@@ -1,0 +1,4 @@
+# @install: lix --silent download "gh://github.com/why-haxe/why-bluez#8f25e066bfdd4fd1382ad204d6c53ca6d34eee7c" into why-bluez/0.0.0/github/8f25e066bfdd4fd1382ad204d6c53ca6d34eee7c
+-lib why-dbus
+-cp ${HAXE_LIBCACHE}/why-bluez/0.0.0/github/8f25e066bfdd4fd1382ad204d6c53ca6d34eee7c/src
+-D why-bluez=0.0.0
