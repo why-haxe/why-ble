@@ -1,5 +1,7 @@
 package why.ble.central;
 
+import why.dbus.types.Variant;
+import why.dbus.Signature;
 import why.ble.*;
 import why.ble.RemoteValue;
 import tink.Chunk;
@@ -29,10 +31,6 @@ class BluezCentral implements Central {
 		
 		discovered = new Signal(cb -> {
 			function emit(device) cb(get(device));
-			bluez.getDevices().handle(o -> switch o {
-				case Success(devices): for(device in devices) emit(device);
-				case Failure(e): trace(e);
-			}) &
 			bluez.deviceAdded.handle(emit);
 		});
 		
@@ -56,11 +54,16 @@ class BluezCentral implements Central {
 	}
 	
 	public function startScanning():Promise<Noise> {
-		return adapter.next(a -> a.adapter.startDiscovery());
+		return adapter.next(a -> {
+			bluez.getDevices()
+				// .next(devices -> Promise.inParallel([for(device in devices) a.adapter.removeDevice(device.path)])) // start cleanly
+				.next(_ -> a.adapter.setDiscoveryFilter(['RSSI' => new Variant(Int16, -120)])) // this disable the RSSI delta-threshold
+				.next(_ -> a.adapter.startDiscovery());
+		});
 	}
 	
 	public function stopScanning():Promise<Noise> {
-		return adapter.next(a -> a.adapter.stopDiscovery());
+		return adapter.next(a -> a.adapter.stopDiscovery()); 
 	}
 }
 
