@@ -31,6 +31,10 @@ class BluezCentral implements Central {
 		
 		discovered = new Signal(cb -> {
 			function emit(device) cb(get(device));
+			bluez.getDevices().handle(o -> switch o {
+				case Success(devices): for(device in devices) emit(device);
+				case Failure(e): trace(e);
+			}) &
 			bluez.deviceAdded.handle(emit);
 		});
 		
