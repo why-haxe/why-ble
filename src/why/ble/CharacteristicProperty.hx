@@ -1,18 +1,6 @@
 package why.ble;
 
-import tink.Chunk;
-
-using tink.CoreApi;
-
-interface Characteristic {
-	final uuid:String;
-	final value:Signal<Chunk>;
-	function write(chunk:Chunk, withResponse:Bool):Promise<Noise>;
-	function read():Promise<Chunk>;
-}
-
-
-enum Property {
+enum CharacteristicProperty {
 	Broadcast;
 	Read;
 	WriteWithoutResponse;

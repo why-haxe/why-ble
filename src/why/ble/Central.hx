@@ -1,5 +1,7 @@
 package why.ble;
 
+import why.ble.central.*;
+
 using tink.CoreApi;
 
 interface Central {

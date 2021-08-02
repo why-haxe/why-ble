@@ -1,0 +1,4 @@
+-lib tink_macro
+-cp ${SCOPE_DIR}/../tink_adhoc/src
+-D tink_adhoc=0.0.0
+--macro Sys.println("haxe_libraries/tink_adhoc.hxml:3: [Warning] Using dev version of library tink_adhoc")

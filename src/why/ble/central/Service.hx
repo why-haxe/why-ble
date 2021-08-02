@@ -1,4 +1,4 @@
-package why.ble;
+package why.ble.central;
 
 using tink.CoreApi;
 

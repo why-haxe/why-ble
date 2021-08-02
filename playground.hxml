@@ -3,6 +3,8 @@
 -js bin/playground/index.js
 
 
+-lib tink_adhoc
+-lib tink_core_ext
 -lib hxnodejs
 -lib why-ble
 -lib why-bluez

@@ -2,7 +2,6 @@ package why.ble.central;
 
 import why.dbus.types.Variant;
 import why.dbus.Signature;
-import why.ble.*;
 import why.ble.RemoteValue;
 import tink.Chunk;
 
@@ -148,17 +147,34 @@ class BluezCharacteristic implements Characteristic {
 		});
 	}
 	
-	public function write(chunk:Chunk, withResponse:Bool):Promise<Noise> {
-		return characteristic.characteristic.writeValue(chunk, ['type' => new why.dbus.types.Variant(why.dbus.Signature.String, withResponse ? 'request' : 'command')]);
+	public function write(chunk:Chunk, ?options:{?withoutResponse:Bool, ?offset:Int}):Promise<Noise> {
+		return characteristic.characteristic.writeValue(chunk, [
+			'offset' =>
+				new Variant(UInt16, switch options {
+					case null | {offset: null}: 0;
+					case {offset: v}: v;
+				}),
+			'type' =>
+				new Variant(String, switch options {
+					case null | {withoutResponse: null | false}: 'command';
+					case {withoutResponse: true}: 'request';
+				}),
+		]);
 	}
 	
-	public function read():Promise<Chunk> {
-		return characteristic.characteristic.readValue([]);
+	public function read(?options:{?offset:Int}):Promise<Chunk> {
+		return characteristic.characteristic.readValue([
+			'offset' =>
+				new Variant(UInt16, switch options {
+					case null | {offset: null}: 0;
+					case {offset: v}: v;
+				}),
+		]);
 	}
 }
 
 class BluezRemoteValue<T> implements RemoteValue.RemoteReadableValue<T> implements RemoteValue.RemoteWritableValue<T> {
-	final property:why.dbus.Property<T>;
+	final property:why.dbus.client.Property<T>;
 	
 	public function new(property) {
 		this.property = property;

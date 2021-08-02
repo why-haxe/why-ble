@@ -1,0 +1,4 @@
+# @install: lix --silent download "gh://github.com/kevinresol/tink_core_ext#b3bc9e98cf8ec51dc4231d6ca06b4a4e86b84b8a" into tink_core_ext/0.0.0/github/b3bc9e98cf8ec51dc4231d6ca06b4a4e86b84b8a
+-lib tink_macro
+-cp ${HAXE_LIBCACHE}/tink_core_ext/0.0.0/github/b3bc9e98cf8ec51dc4231d6ca06b4a4e86b84b8a/src
+-D tink_core_ext=0.0.0
