@@ -49,7 +49,6 @@ class BluezPeripheral implements Peripheral {
 			links;
 		}
 		
-		
 		return adapter.next(a -> {
 			Promise.inParallel([
 				a.gattManager.registerApplication(APPLICATION_PATH, []),
@@ -133,10 +132,13 @@ class BluezAdvertisement implements why.dbus.server.Interface<org.bluez.LEAdvert
 
 class EmptyObjectManager implements why.dbus.server.Interface<org.freedesktop.DBus.ObjectManager> {
 	
-	public final interfacesAdded = Signal.trigger();
-	public final interfacesRemoved = Signal.trigger();
+	public final interfacesAdded:why.dbus.server.Signal<ObjectPath, Map<String, Map<String, Variant>>>;
+	public final interfacesRemoved:why.dbus.server.Signal<ObjectPath, Array<String>>;
 	
-	public function new() {}
+	public function new() {
+		interfacesAdded = new tink.core.Signal(cb -> null);
+		interfacesRemoved = new tink.core.Signal(cb -> null);
+	}
 
 	public function getManagedObjects():tink.core.Promise<Map<ObjectPath, Map<String, Map<String, Variant>>>> {
 		return Promise.resolve(new Map<ObjectPath, Map<String, Map<String, Variant>>>());
@@ -152,8 +154,8 @@ class BluezApplication implements why.dbus.server.Interface<org.freedesktop.DBus
 	
 	public function new(application) {
 		this.application = application;
-		interfacesAdded = tink.core.Signal.trigger();
-		interfacesRemoved = tink.core.Signal.trigger();
+		interfacesAdded = new tink.core.Signal(cb -> null);
+		interfacesRemoved = new tink.core.Signal(cb -> null);
 	}
 	
 	public function getManagedObjects():Promise<Map<ObjectPath, Map<String, Map<String, Variant>>>> {
@@ -212,7 +214,7 @@ class BluezService implements why.dbus.server.Interface<org.bluez.GattService1> 
 class BluezCharacteristic implements why.dbus.server.Interface<org.bluez.GattCharacteristic1> {
 	public final uuid:ReadableProperty<String>;
 	public final service:ReadableProperty<ObjectPath>;
-	public final value:ReadableProperty<Chunk>;
+	public final value:Property<Chunk>;
 	public final writeAcquired:ReadableProperty<Bool>;
 	public final notifyAcquired:ReadableProperty<Bool>;
 	public final notifying:ReadableProperty<Bool>;
@@ -225,7 +227,10 @@ class BluezCharacteristic implements why.dbus.server.Interface<org.bluez.GattCha
 		this.characteristic = characteristic;
 		uuid = new SimpleProperty(characteristic.uuid);
 		service = new SimpleProperty(null);
-		value = new ClassicProperty(() -> throw 'TODO: BluezCharacteristic.value.get', v -> throw 'TODO: BluezCharacteristic.value.set');
+		var cachedValue = Chunk.EMPTY;
+		value = new ClassicProperty(() -> cachedValue, v -> cachedValue = v);
+		characteristic.value.handle(v -> value.set(v));
+		
 		writeAcquired = new SimpleProperty(false);
 		notifyAcquired = new SimpleProperty(false);
 		notifying = new SimpleProperty(false);
